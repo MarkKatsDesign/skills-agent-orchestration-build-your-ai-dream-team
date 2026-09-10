@@ -1,0 +1,32 @@
+{
+  "projects": [
+    {
+      "name": "OctoFit Onboarding",
+      "owner": "Mona",
+      "status": "On Track",
+      "recentActivity": "Completed the first contributor walkthrough and documented two follow-up tasks.",
+      "priority": "High"
+    },
+    {
+      "name": "Actions Insights",
+      "owner": "Raj",
+      "status": "In Progress",
+      "recentActivity": "Connected workflow run summaries to the dashboard prototype.",
+      "priority": "Medium"
+    },
+    {
+      "name": "Release Readiness",
+      "owner": "Avery",
+      "status": "At Risk",
+      "recentActivity": "Flagged an integration blocker that needs review before the next milestone.",
+      "priority": "Critical"
+    },
+    {
+      "name": "Docs Refresh",
+      "owner": "Sam",
+      "status": "Planning",
+      "recentActivity": "Outlined the migration guide and assigned review owners for each section.",
+      "priority": "Low"
+    }
+  ]
+}

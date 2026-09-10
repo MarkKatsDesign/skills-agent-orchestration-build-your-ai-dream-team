@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project Pulse</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#dashboard">Skip to project dashboard</a>
+
+    <header class="page-header">
+      <div class="page-header__content">
+        <p class="page-kicker">Team delivery overview</p>
+        <h1>Project Pulse</h1>
+        <p>
+          Scan active team projects by owner, status, recent activity, and
+          priority so contributors can spot where attention is needed.
+        </p>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="dashboard" id="dashboard" aria-labelledby="dashboard-title">
+        <div class="dashboard-heading">
+          <h2 id="dashboard-title">Current project health</h2>
+          <p id="dashboard-summary">Loading project data from project-data.json.</p>
+        </div>
+
+        <div class="loading-state" id="loading-state" role="status" aria-live="polite">
+          <h2>Loading projects</h2>
+          <p>Fetching the latest project pulse data.</p>
+        </div>
+      </section>
+    </main>
+
+    <template id="project-card-template">
+      <article class="project-card">
+        <div class="project-card__header">
+          <h3 class="project-name"></h3>
+          <div class="badges" aria-label="Project status and priority">
+            <span class="status-badge"></span>
+            <span class="priority-badge"></span>
+          </div>
+        </div>
+
+        <dl class="project-details">
+          <div>
+            <dt>Owner</dt>
+            <dd class="owner"></dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd class="status-value"></dd>
+          </div>
+          <div>
+            <dt>Priority</dt>
+            <dd class="priority-value"></dd>
+          </div>
+        </dl>
+
+        <p class="recent-activity">
+          <strong>Recent activity</strong>
+          <span></span>
+        </p>
+      </article>
+    </template>
+
+    <script>
+      const dashboard = document.querySelector("#dashboard");
+      const dashboardSummary = document.querySelector("#dashboard-summary");
+      const loadingState = document.querySelector("#loading-state");
+      const cardTemplate = document.querySelector("#project-card-template");
+
+      const requiredFields = [
+        "name",
+        "owner",
+        "status",
+        "recentActivity",
+        "priority",
+      ];
+
+      const formatToken = (value) =>
+        String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+      const createState = (className, heading, message, role) => {
+        const state = document.createElement("div");
+        state.className = className;
+        if (role) {
+          state.setAttribute("role", role);
+        }
+
+        const title = document.createElement("h2");
+        title.textContent = heading;
+
+        const body = document.createElement("p");
+        body.textContent = message;
+
+        state.append(title, body);
+        return state;
+      };
+
+      const removeProjectCards = () => {
+        dashboard.querySelectorAll(".project-card, .empty-state, .error-state").forEach((node) => {
+          node.remove();
+        });
+      };
+
+      const validateProjects = (data) => {
+        if (!data || !Array.isArray(data.projects)) {
+          throw new Error("project-data.json must include a top-level projects array.");
+        }
+
+        data.projects.forEach((project, index) => {
+          const missingField = requiredFields.find((field) => !String(project[field] ?? "").trim());
+          if (missingField) {
+            throw new Error(`Project ${index + 1} is missing ${missingField}.`);
+          }
+        });
+
+        return data.projects;
+      };
+
+      const renderProjects = (projects) => {
+        removeProjectCards();
+        loadingState.hidden = true;
+
+        if (projects.length === 0) {
+          dashboardSummary.textContent = "No projects are available in project-data.json.";
+          dashboard.append(
+            createState(
+              "empty-state",
+              "No projects to show",
+              "Add projects to project-data.json to populate this dashboard.",
+            ),
+          );
+          return;
+        }
+
+        dashboardSummary.textContent = `${projects.length} projects loaded from project-data.json.`;
+
+        const fragment = document.createDocumentFragment();
+        projects.forEach((project) => {
+          const card = cardTemplate.content.firstElementChild.cloneNode(true);
+          const statusToken = formatToken(project.status);
+          const priorityToken = formatToken(project.priority);
+
+          card.querySelector(".project-name").textContent = project.name;
+          card.querySelector(".owner").textContent = project.owner;
+          card.querySelector(".status-value").textContent = project.status;
+          card.querySelector(".priority-value").textContent = project.priority;
+
+          const statusBadge = card.querySelector(".status-badge");
+          statusBadge.textContent = `Status: ${project.status}`;
+          statusBadge.dataset.status = statusToken;
+          statusBadge.classList.add(`status-${statusToken}`);
+
+          const priorityBadge = card.querySelector(".priority-badge");
+          priorityBadge.textContent = `Priority: ${project.priority}`;
+          priorityBadge.dataset.priority = priorityToken;
+          priorityBadge.classList.add(`priority-${priorityToken}`);
+
+          card.querySelector(".recent-activity span").textContent = project.recentActivity;
+          fragment.append(card);
+        });
+
+        dashboard.append(fragment);
+      };
+
+      const showError = (error) => {
+        removeProjectCards();
+        loadingState.hidden = true;
+        dashboardSummary.textContent = "Project data could not be loaded.";
+        dashboard.append(
+          createState(
+            "error-state",
+            "Unable to load project data",
+            error.message,
+            "alert",
+          ),
+        );
+      };
+
+      fetch("project-data.json")
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Request for project-data.json failed with ${response.status}.`);
+          }
+          return response.json();
+        })
+        .then(validateProjects)
+        .then(renderProjects)
+        .catch(showError);
+    </script>
+  </body>
+</html>
